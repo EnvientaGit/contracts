@@ -148,6 +148,7 @@ contract EnvientaCrowdsale {
 
       if (fundingGoalReached && owner == msg.sender) {
 	owner.transfer(amountRaised);
+	tokenReward.transfer(owner, tokenReward.balanceOf(this));
 	FundTransfer(owner, amountRaised, false);
       }
     }
