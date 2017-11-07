@@ -1,6 +1,9 @@
 pragma solidity ^0.4.11;
 
-import "token.sol";
+interface token {
+  function transfer( address to, uint256 value) public returns (bool ok);
+  function balanceOf( address who ) public constant returns (uint256 value);
+}
 
 contract EnvientaCrowdsale {
 
@@ -18,7 +21,7 @@ contract EnvientaCrowdsale {
     address public owner;
     uint public amountRaised;
     uint public deadline;
-    EnvientaToken public tokenReward;
+    token public tokenReward;
     mapping(address => uint256) public balanceOf;
     bool fundingGoalReached = false;
     bool crowdsaleClosed = false;
@@ -32,124 +35,106 @@ contract EnvientaCrowdsale {
       _;
     }
     
-    function EnvientaCrowdsale() {
+    function EnvientaCrowdsale() public {
         owner = msg.sender;
     }
 
-    function start( address tokenRewardAddress ) onlyOwner {
-      tokenReward = EnvientaToken(tokenRewardAddress);
+    function start( address tokenRewardAddress ) public onlyOwner {
+      tokenReward = token(tokenRewardAddress);
       deadline = now + duration;
       crowdsaleStarted = true;
     }
     
-    function stop() onlyOwner {
+    function stop() public onlyOwner {
       if( amountRaised >= softCap ) {
-	fundingGoalReached = true;
-	GoalReached(owner, amountRaised);
+	    fundingGoalReached = true;
+	    GoalReached(owner, amountRaised);
       }
       crowdsaleClosed = true;
     }
     
 
-    function checkGoalReached() {
-      if( !crowdsaleStarted ) {
-	throw;
-      }
-      if( now < deadline ) {
-	throw;
-      }  
+    function checkGoalReached() public {
+      require( crowdsaleStarted );
+      require( now >= deadline );
       if( amountRaised >= softCap ) {
-	fundingGoalReached = true;
-	GoalReached(owner, amountRaised);
+	    fundingGoalReached = true;
+	    GoalReached(owner, amountRaised);
       }
       crowdsaleClosed = true;
     }
 
-    function () payable {
-      if( !crowdsaleStarted ) {
-	throw;
-      }
-      if( crowdsaleClosed ) {
-	throw;
-      }
-      if( now > deadline ) {
-	throw;
-      }
-      if( amountRaised > hardCap ) {
-	throw;
-      }
+    function _sell(uint currentAmount, uint rewardMultiplier) internal {
+    	balanceOf[msg.sender] += currentAmount;
+    	amountRaised += currentAmount;
+    	tokenReward.transfer(msg.sender, currentAmount * rewardMultiplier);
+        FundTransfer(msg.sender, currentAmount, true);
+    }
+    
+    function () public payable {
+      require( crowdsaleStarted );
+      require( !crowdsaleClosed );
+      require( now < deadline );
+      require( amountRaised <= hardCap );
 	
       uint amount = msg.value;
       uint currentAmount = 0;
         
       if( amountRaised < bonusLevel1 && amount > 0) {
-	if( amountRaised + amount > bonusLevel1 ) {
-	  currentAmount = bonusLevel1 - amountRaised;
-	  amount = amount - currentAmount;
-	} else {
-	  currentAmount = amount;
-	  amount = 0;
-	}
-	balanceOf[msg.sender] += currentAmount;
-	amountRaised += currentAmount;
-	tokenReward.transfer(msg.sender, currentAmount * rewardLevel1);
-        FundTransfer(msg.sender, currentAmount, true);
+    	if( amountRaised + amount > bonusLevel1 ) {
+    	  currentAmount = bonusLevel1 - amountRaised;
+    	  amount = amount - currentAmount;
+    	} else {
+    	  currentAmount = amount;
+    	  amount = 0;
+    	}
+    	_sell(currentAmount, rewardLevel1);
       }
       
       if( amountRaised < bonusLevel2 && amount > 0) {
-	if( amountRaised + amount > bonusLevel2 ) {
-	  currentAmount = bonusLevel2 - amountRaised;
-	  amount = amount - currentAmount;
-	} else {
-	  currentAmount = amount;
-	  amount = 0;
-	}
-	balanceOf[msg.sender] += currentAmount;
-	amountRaised += currentAmount;
-	tokenReward.transfer(msg.sender, currentAmount * rewardLevel2);
-        FundTransfer(msg.sender, currentAmount, true);
+    	if( amountRaised + amount > bonusLevel2 ) {
+    	  currentAmount = bonusLevel2 - amountRaised;
+    	  amount = amount - currentAmount;
+    	} else {
+    	  currentAmount = amount;
+    	  amount = 0;
+    	}
+    	_sell(currentAmount, rewardLevel2);
       }
       
       if( amount > 0 ) {
-	if( amountRaised + amount > hardCap ) {
-	  currentAmount = hardCap - amountRaised;
-	  amount = amount - currentAmount;
-	} else {
-	  currentAmount = amount;
-	  amount = 0;
-	}
-	balanceOf[msg.sender] += currentAmount;
-	amountRaised += currentAmount;
-	tokenReward.transfer(msg.sender, currentAmount * rewardLevel3);
-        FundTransfer(msg.sender, currentAmount, true);
+    	if( amountRaised + amount > hardCap ) {
+    	  currentAmount = hardCap - amountRaised;
+    	  amount = amount - currentAmount;
+    	} else {
+    	  currentAmount = amount;
+    	  amount = 0;
+    	}
+    	_sell(currentAmount, rewardLevel3);
       }
       
       if( amount > 0 ) {
-	msg.sender.transfer(amount);
+    	msg.sender.transfer(amount);
       }
     }
 
-    function safeWithdrawal() {
-      if( !crowdsaleStarted ) {
-	throw;
-      }
-      if( !crowdsaleClosed ) {
-	throw;
-      }
+    function safeWithdrawal() public {
+      require( crowdsaleStarted );
+      require( crowdsaleClosed );
       
       if( !fundingGoalReached ) {
-	uint amount = balanceOf[msg.sender];
-	balanceOf[msg.sender] = 0;
+    	uint amount = balanceOf[msg.sender];
+    	balanceOf[msg.sender] = 0;
         if (amount > 0) {
-	  msg.sender.transfer(amount);
-	  FundTransfer(msg.sender, amount, false);
+    	  msg.sender.transfer(amount);
+    	  FundTransfer(msg.sender, amount, false);
         }
       }
 
       if (fundingGoalReached && owner == msg.sender) {
-	owner.transfer(amountRaised);
-	tokenReward.transfer(owner, tokenReward.balanceOf(this));
-	FundTransfer(owner, amountRaised, false);
+    	owner.transfer(amountRaised);
+    	tokenReward.transfer(owner, tokenReward.balanceOf(this));
+    	FundTransfer(owner, amountRaised, false);
       }
     }
     
