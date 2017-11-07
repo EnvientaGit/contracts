@@ -14,41 +14,31 @@ contract EnvientaToken {
   
   uint256 public _supply = 1200000 * 10**uint256(decimals);
   
-  function EnvientaToken() {
+  function EnvientaToken() public {
     _balances[msg.sender] = _supply;
   }
   
-  function totalSupply() constant returns (uint256 supply) {
+  function totalSupply() public constant returns (uint256 supply) {
     return _supply;
   }
   
-  function balanceOf( address who ) constant returns (uint256 value) {
+  function balanceOf( address who ) public constant returns (uint256 value) {
     return _balances[who];
   }
   
-  function transfer( address to, uint256 value) returns (bool ok) {
-    if( _balances[msg.sender] < value ) {
-      throw;
-    }
-    if( !safeToAdd(_balances[to], value) ) {
-      throw;
-    }
+  function transfer( address to, uint256 value) public returns (bool ok) {
+    require( _balances[msg.sender] >= value );
+    require( _balances[to] + value >= _balances[to]);
     _balances[msg.sender] -= value;
     _balances[to] += value;
     Transfer( msg.sender, to, value );
     return true;
   }
   
-  function transferFrom( address from, address to, uint256 value) returns (bool ok) {
-    if( _balances[from] < value ) {
-      throw;
-    }
-    if( _approvals[from][msg.sender] < value ) {
-      throw;
-    }
-    if( !safeToAdd(_balances[to], value) ) {
-      throw;
-    }
+  function transferFrom( address from, address to, uint256 value) public returns (bool ok) {
+    require( _balances[from] >= value );
+    require( _approvals[from][msg.sender] >= value );
+    require( _balances[to] + value >= _balances[to]);
     _approvals[from][msg.sender] -= value;
     _balances[from] -= value;
     _balances[to] += value;
@@ -56,17 +46,14 @@ contract EnvientaToken {
     return true;
   }
   
-  function approve(address spender, uint256 value) returns (bool ok) {
+  function approve(address spender, uint256 value) public returns (bool ok) {
     _approvals[msg.sender][spender] = value;
     Approval( msg.sender, spender, value );
     return true;
   }
   
-  function allowance(address owner, address spender) constant returns (uint256 _allowance) {
+  function allowance(address owner, address spender) public constant returns (uint256 _allowance) {
     return _approvals[owner][spender];
   }
   
-  function safeToAdd(uint256 a, uint256 b) internal returns (bool) {
-    return (a + b >= a);
-  }
 }
