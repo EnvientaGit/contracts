@@ -1,9 +1,6 @@
 pragma solidity ^0.4.11;
 
-interface token {
-  function transfer( address to, uint256 value) public returns (bool ok);
-  function balanceOf( address who ) public constant returns (uint256 value);
-}
+import "./token.sol";
 
 contract EnvientaCrowdsale {
 
@@ -21,7 +18,7 @@ contract EnvientaCrowdsale {
     address public owner;
     uint public amountRaised;
     uint public deadline;
-    token public tokenReward;
+    EnvientaToken public tokenReward;
     mapping(address => uint256) public balanceOf;
     bool fundingGoalReached = false;
     bool crowdsaleClosed = false;
@@ -40,7 +37,7 @@ contract EnvientaCrowdsale {
     }
 
     function start( address tokenRewardAddress ) public onlyOwner {
-      tokenReward = token(tokenRewardAddress);
+      tokenReward = EnvientaToken(tokenRewardAddress);
       deadline = now + duration;
       crowdsaleStarted = true;
     }
