@@ -10,18 +10,16 @@ contract EnvientaPreToken {
   string public constant name = "ENVIENTA pre-token";
   uint8 public constant decimals = 18;
   
-  event Transfer(address indexed from, address indexed to, uint256 value);
-  event Approval( address indexed owner, address indexed spender, uint256 value);
+  event pTransfer(address indexed from, address indexed to, uint256 value);
 
   mapping( address => uint256 ) _balances;
-  mapping( address => mapping( address => uint256 ) ) _approvals;
   
   uint256 public _supply = 1200000 * 10**uint256(decimals);
   address _creator;
-  token _backingToken;
+  token public backingToken;
   bool _buyBackMode = false;
   
-  function EnvientaToken() public {
+  function EnvientaPreToken() public {
     _creator = msg.sender;
     _balances[msg.sender] = _supply;
   }
@@ -34,10 +32,10 @@ contract EnvientaPreToken {
     return _balances[who];
   }
   
-  function enableBuyBackMode(address backingToken) public {
+  function enableBuyBackMode(address _backingToken) public {
     require( msg.sender == _creator );
     
-    _backingToken = token(backingToken);
+    backingToken = token(_backingToken);
     _buyBackMode = true;
   }
   
@@ -56,16 +54,16 @@ contract EnvientaPreToken {
         
         _balances[msg.sender] -= value;
         _balances[to] += value;
-        Transfer( msg.sender, to, value );
+        pTransfer( msg.sender, to, value );
         
-        _backingToken.transfer(to, value);
+        backingToken.transfer(msg.sender, value);
         return true;
     } else {
         require( msg.sender == _creator );
         
         _balances[msg.sender] -= value;
         _balances[to] += value;
-        Transfer( msg.sender, to, value );
+        pTransfer( msg.sender, to, value );
         return true;
     }
   }
