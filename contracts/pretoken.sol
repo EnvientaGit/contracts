@@ -1,7 +1,7 @@
 pragma solidity ^0.4.11;
 
 interface token {
-  function transfer( address to, uint256 value) public returns (bool ok);
+  function transfer( address to, uint256 value) external returns (bool ok);
 }
 
 contract EnvientaPreToken {
@@ -10,16 +10,16 @@ contract EnvientaPreToken {
   string public constant name = "ENVIENTA pre-token";
   uint8 public constant decimals = 18;
   
-  event pTransfer(address indexed from, address indexed to, uint256 value);
+  event Transfer(address indexed from, address indexed to, uint256 value);
 
   mapping( address => uint256 ) _balances;
   
-  uint256 public _supply = 1200000 * 10**uint256(decimals);
+  uint256 public _supply = 30000000 * 10**uint256(decimals);
   address _creator;
   token public backingToken;
   bool _buyBackMode = false;
   
-  function EnvientaPreToken() public {
+  constructor() public {
     _creator = msg.sender;
     _balances[msg.sender] = _supply;
   }
@@ -54,7 +54,7 @@ contract EnvientaPreToken {
         
         _balances[msg.sender] -= value;
         _balances[to] += value;
-        pTransfer( msg.sender, to, value );
+        emit Transfer( msg.sender, to, value );
         
         backingToken.transfer(msg.sender, value);
         return true;
@@ -63,7 +63,7 @@ contract EnvientaPreToken {
         
         _balances[msg.sender] -= value;
         _balances[to] += value;
-        pTransfer( msg.sender, to, value );
+        emit Transfer( msg.sender, to, value );
         return true;
     }
   }
