@@ -12,9 +12,9 @@ contract EnvientaToken {
   mapping( address => uint256 ) _balances;
   mapping( address => mapping( address => uint256 ) ) _approvals;
   
-  uint256 public _supply = 1200000 * 10**uint256(decimals);
+  uint256 public _supply = 30000000 * 10**uint256(decimals);
   
-  function EnvientaToken() public {
+  constructor() public {
     _balances[msg.sender] = _supply;
   }
   
@@ -31,7 +31,7 @@ contract EnvientaToken {
     require( _balances[to] + value >= _balances[to]);
     _balances[msg.sender] -= value;
     _balances[to] += value;
-    Transfer( msg.sender, to, value );
+    emit Transfer( msg.sender, to, value );
     return true;
   }
   
@@ -42,13 +42,13 @@ contract EnvientaToken {
     _approvals[from][msg.sender] -= value;
     _balances[from] -= value;
     _balances[to] += value;
-    Transfer( from, to, value );
+    emit Transfer( from, to, value );
     return true;
   }
   
   function approve(address spender, uint256 value) public returns (bool ok) {
     _approvals[msg.sender][spender] = value;
-    Approval( msg.sender, spender, value );
+    emit Approval( msg.sender, spender, value );
     return true;
   }
   
