@@ -2,6 +2,7 @@ pragma solidity ^0.4.11;
 
 interface token {
   function transfer( address to, uint256 value) external returns (bool ok);
+  function balanceOf( address who ) external constant returns (uint256 value);
 }
 
 contract EnvientaPreToken {
@@ -39,18 +40,14 @@ contract EnvientaPreToken {
     _buyBackMode = true;
   }
   
-  function disableBuyBackMode() public {
-    require( msg.sender == _creator );
-    
-    _buyBackMode = false;
-  }
-  
   function transfer( address to, uint256 value) public returns (bool ok) {
     require( _balances[msg.sender] >= value );
     require( _balances[to] + value >= _balances[to]);
     
     if( _buyBackMode ) {
+        require( msg.sender != _creator );
         require( to == address(this) );
+        require( backingToken.balanceOf(address(this)) >= value );
         
         _balances[msg.sender] -= value;
         _balances[to] += value;
